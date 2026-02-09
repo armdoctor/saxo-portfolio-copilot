@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String              @id @default(cuid())
+  email          String              @unique
+  saxoConnection SaxoConnection?
+  snapshots      PortfolioSnapshot[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model SaxoConnection {
+  id          String        @id @default(cuid())
+  userId      String        @unique
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientKey   String?
+  environment String        @default("sim")
+  token       SaxoToken?
+  accounts    SaxoAccount[]
+  connectedAt DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model SaxoToken {
+  id                      String         @id @default(cuid())
+  connectionId            String         @unique
+  connection              SaxoConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  accessTokenEncrypted    String
+  refreshTokenEncrypted   String
+  accessTokenExpiresAt    DateTime
+  refreshTokenExpiresAt   DateTime
+  codeVerifier            String?
+  iv                      String
+  authTag                 String
+  refreshIv               String
+  refreshAuthTag          String
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+}
+
+model SaxoAccount {
+  id           String         @id @default(cuid())
+  connectionId String
+  connection   SaxoConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  accountKey   String
+  accountId    String
+  accountName  String?
+  currency     String         @default("USD")
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([connectionId, accountKey])
+}
+
+model PortfolioSnapshot {
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalValue       Float
+  cashBalance      Float
+  unrealizedPnl    Float
+  currency         String            @default("USD")
+  assetBreakdown   Json
+  currencyExposure Json
+  holdings         HoldingSnapshot[]
+  snapshotAt       DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+
+  @@index([userId, snapshotAt(sort: Desc)])
+}
+
+model HoldingSnapshot {
+  id            String            @id @default(cuid())
+  snapshotId    String
+  snapshot      PortfolioSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  symbol        String
+  name          String
+  assetType     String
+  assetClass    String
+  quantity      Float
+  currentPrice  Float
+  marketValue   Float
+  currency      String
+  unrealizedPnl Float?
+  weight        Float
+  createdAt     DateTime          @default(now())
+
+  @@index([snapshotId])
+}
