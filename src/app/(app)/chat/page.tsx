@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, isToolUIPart } from "ai";
+import { DefaultChatTransport, isToolUIPart, type UIMessage } from "ai";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -15,13 +15,46 @@ const QUICK_PROMPTS = [
 
 const transport = new DefaultChatTransport({ api: "/api/chat" });
 
-export default function ChatPage() {
+function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status, error } = useChat({ transport });
+  const { messages, setMessages, sendMessage, status, error } = useChat({
+    transport,
+    messages: initialMessages,
+  });
 
   const isLoading = status === "streaming" || status === "submitted";
+  const prevStatusRef = useRef(status);
 
-  // Check if the error indicates chat is disabled (no API key)
+  // Persist new messages when streaming completes
+  useEffect(() => {
+    const wasStreaming =
+      prevStatusRef.current === "streaming" ||
+      prevStatusRef.current === "submitted";
+    prevStatusRef.current = status;
+
+    if (wasStreaming && status === "ready" && messages.length >= 2) {
+      const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+
+      const userText = lastUser?.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join("\n\n");
+      const assistantText = lastAssistant?.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text)
+        .join("\n\n");
+
+      if (userText && assistantText) {
+        fetch("/api/chat/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userMessage: userText, assistantMessage: assistantText }),
+        }).catch(() => {});
+      }
+    }
+  }, [status, messages]);
+
   const chatDisabled =
     error?.message?.includes("OPENAI_API_KEY") ||
     error?.message?.includes("503");
@@ -36,6 +69,11 @@ export default function ChatPage() {
   function handleQuickPrompt(prompt: string) {
     if (chatDisabled) return;
     sendMessage({ text: prompt });
+  }
+
+  async function handleClearChat() {
+    await fetch("/api/chat/history", { method: "DELETE" });
+    setMessages([]);
   }
 
   return (
@@ -151,6 +189,16 @@ export default function ChatPage() {
           className="flex-1 rounded-lg border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           disabled={isLoading || chatDisabled}
         />
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClearChat}
+            disabled={isLoading}
+            className="rounded-lg border px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            Clear
+          </button>
+        )}
         <button
           type="submit"
           disabled={isLoading || !input.trim() || chatDisabled}
@@ -161,4 +209,27 @@ export default function ChatPage() {
       </form>
     </div>
   );
+}
+
+export default function ChatPage() {
+  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(
+    null
+  );
+
+  useEffect(() => {
+    fetch("/api/chat/history")
+      .then((res) => res.json())
+      .then((msgs) => setInitialMessages(msgs))
+      .catch(() => setInitialMessages([]));
+  }, []);
+
+  if (initialMessages === null) {
+    return (
+      <div className="flex h-full items-center justify-center text-muted-foreground">
+        Loading chat...
+      </div>
+    );
+  }
+
+  return <ChatContent initialMessages={initialMessages} />;
 }
