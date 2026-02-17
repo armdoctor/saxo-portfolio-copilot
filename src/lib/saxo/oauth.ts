@@ -71,6 +71,7 @@ export async function refreshAccessToken(
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",
+    client_id: config.appKey,
     refresh_token: refreshToken,
     redirect_uri: config.redirectUri,
     code_verifier: codeVerifier,

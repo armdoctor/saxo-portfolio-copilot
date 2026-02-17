@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -123,4 +125,92 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Markdown chat message styling */
+.chat-markdown p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  line-height: 1.65;
+}
+.chat-markdown p:first-child { margin-top: 0; }
+.chat-markdown p:last-child { margin-bottom: 0; }
+
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3,
+.chat-markdown h4, .chat-markdown h5, .chat-markdown h6 {
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+.chat-markdown h1 { font-size: 1.25em; }
+.chat-markdown h2 { font-size: 1.15em; }
+.chat-markdown h3 { font-size: 1.05em; }
+.chat-markdown *:first-child { margin-top: 0; }
+
+.chat-markdown strong { font-weight: 700; }
+.chat-markdown em { font-style: italic; }
+
+.chat-markdown ul, .chat-markdown ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 1.5em;
+}
+.chat-markdown ul { list-style-type: disc; }
+.chat-markdown ol { list-style-type: decimal; }
+.chat-markdown li { margin-top: 0.25em; margin-bottom: 0.25em; }
+.chat-markdown li > ul, .chat-markdown li > ol { margin-top: 0.25em; margin-bottom: 0.25em; }
+
+.chat-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  font-size: 0.875em;
+}
+.chat-markdown th, .chat-markdown td {
+  border: 1px solid var(--border);
+  padding: 0.4em 0.75em;
+  text-align: left;
+}
+.chat-markdown th {
+  font-weight: 600;
+  background-color: color-mix(in oklch, var(--muted) 60%, transparent);
+}
+.chat-markdown tr:nth-child(even) {
+  background-color: color-mix(in oklch, var(--muted) 30%, transparent);
+}
+
+.chat-markdown blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+  color: var(--muted-foreground);
+}
+
+.chat-markdown code {
+  font-size: 0.875em;
+  background-color: var(--muted);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25em;
+}
+.chat-markdown pre {
+  background-color: var(--muted);
+  padding: 0.75em 1em;
+  border-radius: 0.375em;
+  overflow-x: auto;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+.chat-markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+.chat-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin-top: 1em;
+  margin-bottom: 1em;
 }

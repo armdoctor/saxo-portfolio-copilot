@@ -72,6 +72,7 @@ async function saxoFetch<T>(userId: string, path: string): Promise<T> {
 
   if (!res.ok) {
     const body = await res.text();
+    console.error(`[Saxo API] ${res.status} ${path}: ${body}`);
     throw new Error(`Saxo API error ${res.status}: ${body}`);
   }
 
@@ -141,6 +142,7 @@ export interface SaxoPosition {
     AssetType: string;
     Uic: number;
     Status: string;
+    OpenPrice?: number;
   };
   PositionView: {
     CurrentPrice: number;
@@ -148,7 +150,11 @@ export interface SaxoPosition {
     ExposureCurrency: string;
     ExposureInBaseCurrency: number;
     ProfitLossOnTrade: number;
+    ProfitLossOnTradeInBaseCurrency: number;
     MarketValue: number;
+    MarketValueInBaseCurrency: number;
+    MarketValueOpen: number;
+    MarketValueOpenInBaseCurrency: number;
     InstrumentPriceDayPercentChange: number;
     ConversionRateCurrent: number;
   };
@@ -171,5 +177,135 @@ export async function fetchPositions(
   return saxoFetch(
     userId,
     `/port/v1/positions?ClientKey=${encodeURIComponent(clientKey)}&FieldGroups=PositionBase,PositionView,DisplayAndFormat`
+  );
+}
+
+// --- Closed Positions (Trade History) ---
+
+export interface SaxoClosedPosition {
+  ClosedPosition: {
+    AccountId: string;
+    Amount: number;
+    AssetType: string;
+    BuyPrice: number;
+    SellPrice: number;
+    ClosedProfitLoss: number;
+    ClosedProfitLossInBaseCurrency: number;
+    ExecutionTimeOpen: string;
+    ExecutionTimeClose: string;
+    OpenPrice: number;
+    ClosingPrice: number;
+    Uic: number;
+  };
+  ClosedPositionUniqueId: string;
+  DisplayAndFormat?: {
+    Symbol: string;
+    Description: string;
+    Currency: string;
+  };
+  NetPositionId: string;
+}
+
+export interface SaxoClosedPositionsResponse {
+  Data: SaxoClosedPosition[];
+  __count: number;
+}
+
+// --- Account Performance ---
+
+export async function fetchAccountPerformance(
+  userId: string,
+  clientKey: string,
+  accountKey?: string,
+  fromDate?: string,
+  toDate?: string
+): Promise<Record<string, unknown>> {
+  let params = "";
+  if (accountKey) params += `&AccountKey=${encodeURIComponent(accountKey)}`;
+  if (fromDate) params += `&FromDate=${fromDate}`;
+  if (toDate) params += `&ToDate=${toDate}`;
+  if (!fromDate && !toDate) params += `&StandardPeriod=Year`;
+  return saxoFetch(
+    userId,
+    `/hist/v3/perf/${encodeURIComponent(clientKey)}?FieldGroups=AccountSummary,TimeWeightedPerformance,BenchmarkPerformance,TradeActivity${params}`
+  );
+}
+
+// --- Order Activities (Trade History) ---
+
+export async function fetchOrderActivities(
+  userId: string,
+  top: number = 500
+): Promise<Record<string, unknown>> {
+  return saxoFetch(
+    userId,
+    `/cs/v1/audit/orderactivities?EntryType=Last&FieldGroups=DisplayAndFormat&$top=${top}`
+  );
+}
+
+export async function fetchClosedPositions(
+  userId: string,
+  clientKey: string,
+  accountKey?: string
+): Promise<SaxoClosedPositionsResponse> {
+  let params = `ClientKey=${encodeURIComponent(clientKey)}`;
+  if (accountKey) {
+    params += `&AccountKey=${encodeURIComponent(accountKey)}`;
+  }
+  return saxoFetch(
+    userId,
+    `/port/v1/closedpositions?${params}&FieldGroups=ClosedPosition,DisplayAndFormat`
+  );
+}
+
+// --- Chart Data ---
+
+export type ChartRange = "1D" | "1W" | "1M" | "6M" | "1Y" | "5Y";
+
+const CHART_RANGE_CONFIG: Record<ChartRange, { horizon: number; count: number }> = {
+  "1D": { horizon: 5, count: 78 },
+  "1W": { horizon: 60, count: 40 },
+  "1M": { horizon: 1440, count: 22 },
+  "6M": { horizon: 1440, count: 130 },
+  "1Y": { horizon: 1440, count: 260 },
+  "5Y": { horizon: 1440, count: 1300 },
+};
+
+export async function fetchChartData(
+  userId: string,
+  uic: number,
+  assetType: string,
+  range: ChartRange = "1M"
+): Promise<Record<string, unknown>> {
+  const { horizon, count } = CHART_RANGE_CONFIG[range];
+  return saxoFetch(
+    userId,
+    `/chart/v3/charts?Uic=${uic}&AssetType=${encodeURIComponent(assetType)}&Horizon=${horizon}&Count=${count}`
+  );
+}
+
+// --- Info Price (Live Quote) ---
+
+export async function fetchInfoPrice(
+  userId: string,
+  uic: number,
+  assetType: string
+): Promise<Record<string, unknown>> {
+  return saxoFetch(
+    userId,
+    `/trade/v1/infoprices?Uic=${uic}&AssetType=${encodeURIComponent(assetType)}&FieldGroups=PriceInfo,Quote,PriceInfoDetails,DisplayAndFormat`
+  );
+}
+
+// --- Instrument Details ---
+
+export async function fetchInstrumentDetails(
+  userId: string,
+  uic: number,
+  assetType: string
+): Promise<Record<string, unknown>> {
+  return saxoFetch(
+    userId,
+    `/ref/v1/instruments/details/${uic}/${encodeURIComponent(assetType)}`
   );
 }

@@ -76,6 +76,8 @@ export default async function DashboardPage() {
           currency: h.currency,
           weight: h.weight,
           unrealizedPnl: h.unrealizedPnl,
+          uic: h.uic,
+          saxoAssetType: h.saxoAssetType,
         }))}
         portfolioCurrency={snapshot.currency}
       />

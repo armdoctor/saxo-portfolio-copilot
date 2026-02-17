@@ -91,6 +91,8 @@ model HoldingSnapshot {
   currency      String
   unrealizedPnl Float?
   weight        Float
+  uic           Int?
+  saxoAssetType String?
   createdAt     DateTime          @default(now())
 
   @@index([snapshotId])

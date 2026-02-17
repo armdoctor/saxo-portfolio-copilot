@@ -4,8 +4,12 @@ const REQUIRED_ENV_VARS = [
   "TOKEN_ENCRYPTION_KEY",
   "SAXO_APP_KEY",
   "SAXO_REDIRECT_URI",
-  "APP_USER_EMAIL",
-  "APP_USER_PASSWORD",
+] as const;
+
+// Warn-only: needed for full functionality but shouldn't crash the server
+const RECOMMENDED_ENV_VARS = [
+  "AUTH_GOOGLE_ID",
+  "AUTH_GOOGLE_SECRET",
 ] as const;
 
 const OPTIONAL_ENV_VARS = [
@@ -24,6 +28,13 @@ export function validateEnv() {
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables:\n${missing.map((k) => `  - ${k}`).join("\n")}\n\nCopy .env.example to .env and fill in all required values.`
+    );
+  }
+
+  const missingRecommended = RECOMMENDED_ENV_VARS.filter((key) => !process.env[key]);
+  if (missingRecommended.length > 0) {
+    console.warn(
+      `⚠ Missing recommended environment variables (Google OAuth won't work without these):\n${missingRecommended.map((k) => `  - ${k}`).join("\n")}`
     );
   }
 

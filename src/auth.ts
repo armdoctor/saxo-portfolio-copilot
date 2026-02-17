@@ -1,36 +1,30 @@
 import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
-import { validateEnv } from "@/lib/config";
 import { authConfig } from "./auth.config";
-
-validateEnv();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
-  providers: [
-    Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        const email = credentials?.email as string;
-        const password = credentials?.password as string;
-
-        if (
-          email === process.env.APP_USER_EMAIL &&
-          password === process.env.APP_USER_PASSWORD
-        ) {
-          // Auto-seed user in DB on first login
-          let dbUser = await prisma.user.findUnique({ where: { email } });
-          if (!dbUser) {
-            dbUser = await prisma.user.create({ data: { email } });
-          }
-          return { id: dbUser.id, email: dbUser.email, name: "Admin" };
-        }
-        return null;
-      },
-    }),
-  ],
+  providers: [Google],
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ user }) {
+      if (!user.email) return false;
+      await prisma.user.upsert({
+        where: { email: user.email },
+        update: {},
+        create: { email: user.email },
+      });
+      return true;
+    },
+    async jwt({ token }) {
+      if (token.email && !token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email },
+        });
+        if (dbUser) token.id = dbUser.id;
+      }
+      return token;
+    },
+  },
 });

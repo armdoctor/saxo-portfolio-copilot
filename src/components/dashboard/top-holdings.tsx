@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -24,6 +26,8 @@ interface Holding {
   currency: string;
   weight: number;
   unrealizedPnl: number | null;
+  uic: number | null;
+  saxoAssetType: string | null;
 }
 
 interface Props {
@@ -63,7 +67,19 @@ export function TopHoldings({ holdings, portfolioCurrency }: Props) {
           <TableBody>
             {top.map((h) => (
               <TableRow key={h.symbol}>
-                <TableCell className="font-medium">{h.symbol}</TableCell>
+                <TableCell className="font-medium">
+                  {h.uic && h.saxoAssetType ? (
+                    <Link
+                      href={`/holdings/${h.uic}/${encodeURIComponent(h.saxoAssetType)}`}
+                      className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
+                    >
+                      {h.symbol}
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    </Link>
+                  ) : (
+                    h.symbol
+                  )}
+                </TableCell>
                 <TableCell className="hidden max-w-[200px] truncate md:table-cell">
                   {h.name}
                 </TableCell>

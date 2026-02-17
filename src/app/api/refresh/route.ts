@@ -1,12 +1,18 @@
 import { auth } from "@/auth";
 import { buildSnapshot } from "@/lib/portfolio/snapshot";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { NextResponse } from "next/server";
 
 export async function POST() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rl = rateLimit(`refresh:${session.user.id}`, { limit: 5, windowMs: 60_000 });
+  if (!rl.success) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   try {

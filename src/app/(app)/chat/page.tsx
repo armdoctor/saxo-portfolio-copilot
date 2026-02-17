@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, isToolUIPart } from "ai";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const QUICK_PROMPTS = [
   "What's my portfolio worth right now?",
@@ -87,12 +89,24 @@ export default function ChatPage() {
             >
               {message.parts.map((part, i) => {
                 if (part.type === "text") {
+                  if (message.role === "user") {
+                    return (
+                      <div
+                        key={i}
+                        className="whitespace-pre-wrap text-sm leading-relaxed"
+                      >
+                        {part.text}
+                      </div>
+                    );
+                  }
                   return (
                     <div
                       key={i}
-                      className="whitespace-pre-wrap text-sm leading-relaxed"
+                      className="chat-markdown prose prose-sm dark:prose-invert max-w-none"
                     >
-                      {part.text}
+                      <Markdown remarkPlugins={[remarkGfm]}>
+                        {part.text}
+                      </Markdown>
                     </div>
                   );
                 }

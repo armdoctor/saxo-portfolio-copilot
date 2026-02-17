@@ -7,39 +7,25 @@ import {
 } from "@/lib/saxo/client";
 
 function mapAssetClass(assetType: string): string {
-  switch (assetType) {
-    case "Stock":
-    case "CfdOnStock":
-      return "Stocks";
-    case "ETF":
-    case "CfdOnEtf":
-      return "ETFs";
-    case "Bond":
-    case "CfdOnBond":
-      return "Bonds";
-    case "MutualFund":
-      return "Funds";
-    case "FxSpot":
-    case "FxForwards":
-      return "Forex";
-    default:
-      return "Other";
-  }
+  const normalized = assetType.toLowerCase();
+  if (normalized === "stock" || normalized === "cfdonstock") return "Stocks";
+  if (normalized === "etf" || normalized === "cfdonetf" || normalized === "etcetf")
+    return "ETFs";
+  if (normalized === "bond" || normalized === "cfdonbond") return "Bonds";
+  if (normalized === "mutualfund") return "Funds";
+  if (normalized === "fxspot" || normalized === "fxforwards") return "Forex";
+  return "Other";
 }
 
 function mapAssetType(saxoAssetType: string): string {
-  const mapping: Record<string, string> = {
-    Stock: "Stock",
-    CfdOnStock: "Stock",
-    ETF: "ETF",
-    CfdOnEtf: "ETF",
-    Bond: "Bond",
-    CfdOnBond: "Bond",
-    MutualFund: "Fund",
-    FxSpot: "Forex",
-    FxForwards: "Forex",
-  };
-  return mapping[saxoAssetType] || "Other";
+  const normalized = saxoAssetType.toLowerCase();
+  if (normalized === "stock" || normalized === "cfdonstock") return "Stock";
+  if (normalized === "etf" || normalized === "cfdonetf" || normalized === "etcetf")
+    return "ETF";
+  if (normalized === "bond" || normalized === "cfdonbond") return "Bond";
+  if (normalized === "mutualfund") return "Fund";
+  if (normalized === "fxspot" || normalized === "fxforwards") return "Forex";
+  return "Other";
 }
 
 export interface SnapshotResult {
@@ -109,44 +95,89 @@ export async function buildSnapshot(userId: string): Promise<SnapshotResult> {
   let totalUnrealizedPnl = 0;
 
   const holdingsData = positions.map((pos) => {
-    const assetClass = mapAssetClass(pos.PositionBase.AssetType);
-    const assetType = mapAssetType(pos.PositionBase.AssetType);
-    const marketValue =
-      pos.PositionView?.ExposureInBaseCurrency ||
-      pos.PositionView?.Exposure ||
-      pos.PositionBase.Amount * (pos.PositionView?.CurrentPrice || 0);
+    const view = pos.PositionView;
+    const base = pos.PositionBase;
+    const assetClass = mapAssetClass(base.AssetType);
+    const assetType = mapAssetType(base.AssetType);
     const currency =
       pos.DisplayAndFormat?.Currency ||
-      pos.PositionView?.ExposureCurrency ||
+      view?.ExposureCurrency ||
       "USD";
-    const pnl = pos.PositionView?.ProfitLossOnTrade || 0;
 
-    // Accumulate asset breakdown
-    assetBreakdown[assetClass] = (assetBreakdown[assetClass] || 0) + marketValue;
+    // Market value in position currency.
+    // Saxo returns 0 for CurrentPrice/MarketValue when prices are delayed,
+    // so fall back to |MarketValueOpen| + ProfitLossOnTrade (cost + P&L = current value).
+    let marketValue = view?.MarketValue || 0;
+    if (!marketValue && view?.MarketValueOpen) {
+      marketValue = Math.abs(view.MarketValueOpen) + (view.ProfitLossOnTrade || 0);
+    }
+    if (!marketValue) {
+      marketValue = base.Amount * (view?.CurrentPrice || base.OpenPrice || 0);
+    }
 
-    // Accumulate currency exposure
-    const exposureValue = pos.PositionView?.Exposure || marketValue;
-    currencyExposure[currency] =
-      (currencyExposure[currency] || 0) + exposureValue;
+    // Market value in base currency (for aggregation)
+    let marketValueBase = view?.MarketValueInBaseCurrency || 0;
+    if (!marketValueBase && view?.MarketValueOpenInBaseCurrency) {
+      marketValueBase =
+        Math.abs(view.MarketValueOpenInBaseCurrency) +
+        (view.ProfitLossOnTradeInBaseCurrency || 0);
+    }
+    if (!marketValueBase) {
+      marketValueBase = marketValue * (view?.ConversionRateCurrent || 1);
+    }
+
+    const currentPrice =
+      view?.CurrentPrice ||
+      (marketValue && base.Amount ? marketValue / base.Amount : 0);
+
+    const pnl = view?.ProfitLossOnTrade || 0;
+
+    // Accumulate asset breakdown (in base currency)
+    assetBreakdown[assetClass] = (assetBreakdown[assetClass] || 0) + marketValueBase;
+
+    // Accumulate currency exposure (in position currency)
+    currencyExposure[currency] = (currencyExposure[currency] || 0) + marketValue;
 
     totalUnrealizedPnl += pnl;
 
     return {
       symbol:
-        pos.DisplayAndFormat?.Symbol || `UIC-${pos.PositionBase.Uic}`,
+        pos.DisplayAndFormat?.Symbol || `UIC-${base.Uic}`,
       name:
         pos.DisplayAndFormat?.Description ||
         pos.DisplayAndFormat?.Symbol ||
         "Unknown",
       assetType,
       assetClass,
-      quantity: pos.PositionBase.Amount,
-      currentPrice: pos.PositionView?.CurrentPrice || 0,
-      marketValue,
+      quantity: base.Amount,
+      currentPrice,
+      marketValue: marketValueBase,
       currency,
       unrealizedPnl: pnl,
+      uic: base.Uic,
+      saxoAssetType: base.AssetType,
     };
   });
+
+  // Consolidate tranches of the same instrument by symbol
+  const consolidated = new Map<
+    string,
+    (typeof holdingsData)[number]
+  >();
+  for (const h of holdingsData) {
+    const existing = consolidated.get(h.symbol);
+    if (existing) {
+      existing.quantity += h.quantity;
+      existing.marketValue += h.marketValue;
+      existing.unrealizedPnl += h.unrealizedPnl;
+      // Recalculate average price from total value / total quantity
+      existing.currentPrice =
+        existing.quantity > 0 ? existing.marketValue / existing.quantity : 0;
+    } else {
+      consolidated.set(h.symbol, { ...h });
+    }
+  }
+  const mergedHoldings = [...consolidated.values()];
 
   // Add cash to asset breakdown
   assetBreakdown["Cash"] = balances.CashBalance;
@@ -162,7 +193,7 @@ export async function buildSnapshot(userId: string): Promise<SnapshotResult> {
     balances.TotalValue ||
     Object.values(assetBreakdown).reduce((a, b) => a + b, 0);
 
-  const holdingsWithWeights = holdingsData.map((h) => ({
+  const holdingsWithWeights = mergedHoldings.map((h) => ({
     ...h,
     weight: totalValue > 0 ? (h.marketValue / totalValue) * 100 : 0,
   }));

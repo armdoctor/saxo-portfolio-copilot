@@ -9,8 +9,10 @@ export const config = {
     "/dashboard/:path*",
     "/settings/:path*",
     "/chat/:path*",
+    "/holdings/:path*",
     "/api/saxo/:path*",
     "/api/refresh/:path*",
     "/api/chat/:path*",
+    "/api/holdings/:path*",
   ],
 };
