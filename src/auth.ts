@@ -5,6 +5,7 @@ import { authConfig } from "./auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
+  debug: true,
   providers: [Google],
   callbacks: {
     ...authConfig.callbacks,
