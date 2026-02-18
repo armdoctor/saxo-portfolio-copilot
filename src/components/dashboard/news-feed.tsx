@@ -101,10 +101,14 @@ function GroupSection({ title, articles, showCompany }: GroupSectionProps) {
   const rest = articles.slice(1);
 
   return (
-    <div className="space-y-2">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-        {title}
-      </p>
+    <div className="space-y-2.5">
+      {/* Category label with rule */}
+      <div className="flex items-center gap-3">
+        <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wider text-foreground">
+          {title}
+        </span>
+        <div className="flex-1 border-t border-border" />
+      </div>
 
       {/* Lead article */}
       <Link
@@ -159,10 +163,9 @@ function GroupedView({
   }
 
   return (
-    <div className="space-y-5">
-      {keys.map((key, i) => (
-        <div key={key}>
-          {i > 0 && <div className="mb-5 border-t border-border" />}
+    <div className="md:columns-2 md:gap-8">
+      {keys.map((key) => (
+        <div key={key} className="mb-6 break-inside-avoid">
           <GroupSection
             title={key}
             articles={grouped.get(key)!}
