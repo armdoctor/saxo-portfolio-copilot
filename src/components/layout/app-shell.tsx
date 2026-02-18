@@ -16,9 +16,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-dvh bg-background">
-      {/* Sidebar */}
-      <aside className="hidden w-64 flex-col border-r bg-muted/30 md:flex">
-        <div className="flex h-14 items-center border-b px-4">
+      {/* Desktop sidebar */}
+      <aside className="hidden w-64 flex-col bg-card md:flex">
+        <div className="flex h-14 items-center px-4">
           <h1 className="text-lg font-semibold">Portfolio Copilot</h1>
         </div>
         <nav className="flex-1 space-y-1 p-3">
@@ -30,9 +30,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/15 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
@@ -54,10 +54,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="border-t p-3">
+        <div className="p-3">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <svg
               className="h-5 w-5"
@@ -77,50 +77,52 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile header */}
+      {/* Main content area */}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center border-b px-4 pt-[env(safe-area-inset-top)] md:hidden">
+        {/* Mobile top bar — title only */}
+        <header className="flex h-12 items-center px-4 pt-[env(safe-area-inset-top)] md:hidden">
           <h1 className="text-lg font-semibold">Portfolio Copilot</h1>
-          <nav className="ml-auto flex gap-1">
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-label={item.label}
-                  className={cn(
-                    "rounded-md p-2.5 transition-colors active:bg-muted",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d={item.icon}
-                    />
-                  </svg>
-                </Link>
-              );
-            })}
-          </nav>
         </header>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-20 md:p-6 md:pb-6">
           {children}
         </main>
+
+        {/* Mobile bottom tab bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-end justify-around border-t border-border bg-card/80 backdrop-blur-lg pb-[env(safe-area-inset-bottom)] md:hidden">
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground active:text-foreground"
+                )}
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={isActive ? 2 : 1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={item.icon}
+                  />
+                </svg>
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

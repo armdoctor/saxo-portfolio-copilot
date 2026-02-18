@@ -22,20 +22,20 @@ const config: Record<
   { bg: string; text: string; label: string; detail: string }
 > = {
   fresh: {
-    bg: "bg-green-50 dark:bg-green-900/20",
-    text: "text-green-800 dark:text-green-400",
+    bg: "bg-primary/10",
+    text: "text-primary",
     label: "Data is up to date",
     detail: "",
   },
   stale: {
-    bg: "bg-amber-50 dark:bg-amber-900/20",
-    text: "text-amber-800 dark:text-amber-400",
+    bg: "bg-amber-900/20",
+    text: "text-amber-400",
     label: "Data may be stale",
     detail: " — refresh recommended",
   },
   expired: {
-    bg: "bg-red-50 dark:bg-red-900/20",
-    text: "text-red-800 dark:text-red-400",
+    bg: "bg-red-900/20",
+    text: "text-red-400",
     label: "Data is outdated",
     detail: " — please refresh your portfolio",
   },

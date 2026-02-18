@@ -71,7 +71,7 @@ export function TopHoldings({ holdings, portfolioCurrency }: Props) {
                   {h.uic && h.saxoAssetType ? (
                     <Link
                       href={`/holdings/${h.uic}/${encodeURIComponent(h.saxoAssetType)}`}
-                      className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
+                      className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
                     >
                       {h.symbol}
                       <ChevronRight className="h-3 w-3 text-muted-foreground" />

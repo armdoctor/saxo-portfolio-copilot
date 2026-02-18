@@ -74,13 +74,13 @@ export function PortfolioSummary({
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <p className="text-sm text-muted-foreground">Total Value</p>
-            <p className="text-2xl font-bold sm:text-3xl">
+            <p className="text-3xl font-bold sm:text-4xl">
               {formatCurrency(totalValue, currency)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Cash Balance</p>
-            <p className="text-xl font-semibold sm:text-2xl">
+            <p className="text-2xl font-semibold sm:text-3xl">
               {formatCurrency(cashBalance, currency)}
             </p>
           </div>

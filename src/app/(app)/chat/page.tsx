@@ -88,7 +88,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col">
       {chatDisabled && (
-        <div className="mb-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+        <div className="mb-4 rounded-md bg-amber-900/20 px-4 py-3 text-sm text-amber-400">
           Chat is disabled — OPENAI_API_KEY is not configured. Add it to
           your .env file and restart the server.
         </div>
@@ -113,7 +113,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
                 <button
                   key={prompt}
                   onClick={() => handleQuickPrompt(prompt)}
-                  className="rounded-lg border p-4 text-left text-base transition-colors active:bg-muted md:p-3 md:text-sm md:hover:bg-muted"
+                  className="rounded-lg bg-card p-4 text-left text-base transition-colors active:bg-muted md:p-3 md:text-sm md:hover:bg-muted"
                 >
                   {prompt}
                 </button>
@@ -131,7 +131,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
               className={`max-w-[85%] rounded-lg px-4 py-3 ${
                 message.role === "user"
                   ? "bg-primary text-primary-foreground"
-                  : "bg-muted"
+                  : "bg-card"
               }`}
             >
               {message.parts.map((part, i) => {
@@ -149,7 +149,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
                   return (
                     <div
                       key={i}
-                      className="chat-markdown prose prose-sm dark:prose-invert max-w-none"
+                      className="chat-markdown prose prose-sm prose-invert max-w-none"
                     >
                       <Markdown remarkPlugins={[remarkGfm]}>
                         {part.text}
@@ -176,7 +176,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
 
         {isLoading && messages[messages.length - 1]?.role === "user" && (
           <div className="flex justify-start">
-            <div className="rounded-lg bg-muted px-4 py-3">
+            <div className="rounded-lg bg-card px-4 py-3">
               <span className="animate-pulse text-sm text-muted-foreground">
                 Thinking...
               </span>
@@ -197,7 +197,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
               ? "Chat is disabled (no API key)"
               : "Ask about your portfolio..."
           }
-          className="flex-1 rounded-lg border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm"
+          className="flex-1 rounded-lg bg-card px-4 py-3 text-base ring-1 ring-border focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm"
           disabled={isLoading || chatDisabled}
         />
         {messages.length > 0 && (
@@ -205,7 +205,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
             type="button"
             onClick={handleClearChat}
             disabled={isLoading}
-            className="rounded-lg border px-3 py-3 text-base text-muted-foreground transition-colors active:bg-muted md:text-sm md:hover:bg-muted disabled:opacity-50"
+            className="rounded-lg bg-card px-3 py-3 text-base text-muted-foreground ring-1 ring-border transition-colors active:bg-muted md:text-sm md:hover:bg-muted disabled:opacity-50"
           >
             Clear
           </button>
