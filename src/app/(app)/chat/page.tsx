@@ -24,6 +24,12 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
 
   const isLoading = status === "streaming" || status === "submitted";
   const prevStatusRef = useRef(status);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Persist new messages when streaming completes
   useEffect(() => {
@@ -104,7 +110,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
                 <button
                   key={prompt}
                   onClick={() => handleQuickPrompt(prompt)}
-                  className="rounded-lg border p-3 text-left text-sm transition-colors hover:bg-muted"
+                  className="rounded-lg border p-4 text-left text-base transition-colors active:bg-muted md:p-3 md:text-sm md:hover:bg-muted"
                 >
                   {prompt}
                 </button>
@@ -174,10 +180,12 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
             </div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
-      <form onSubmit={handleSubmit} className="flex gap-2 border-t pt-4">
+      <form onSubmit={handleSubmit} className="flex shrink-0 gap-2 border-t pt-4 pb-[env(safe-area-inset-bottom)]">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -186,7 +194,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
               ? "Chat is disabled (no API key)"
               : "Ask about your portfolio..."
           }
-          className="flex-1 rounded-lg border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="flex-1 rounded-lg border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary/50 md:text-sm"
           disabled={isLoading || chatDisabled}
         />
         {messages.length > 0 && (
@@ -194,7 +202,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
             type="button"
             onClick={handleClearChat}
             disabled={isLoading}
-            className="rounded-lg border px-3 py-3 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            className="rounded-lg border px-3 py-3 text-base text-muted-foreground transition-colors active:bg-muted md:text-sm md:hover:bg-muted disabled:opacity-50"
           >
             Clear
           </button>
@@ -202,7 +210,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
         <button
           type="submit"
           disabled={isLoading || !input.trim() || chatDisabled}
-          className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="rounded-lg bg-primary px-6 py-3 text-base font-medium text-primary-foreground transition-colors active:bg-primary/90 md:text-sm md:hover:bg-primary/90 disabled:opacity-50"
         >
           Send
         </button>

@@ -104,7 +104,7 @@ export function PriceChart({ uic, assetType }: Props) {
               key={r}
               onClick={() => setRange(r)}
               className={cn(
-                "rounded px-2 py-1 text-xs font-medium transition-colors",
+                "rounded px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-2 sm:py-1 sm:text-xs",
                 r === range
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted"
@@ -117,17 +117,18 @@ export function PriceChart({ uic, assetType }: Props) {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[200px] w-full sm:h-[300px]" />
         ) : error ? (
-          <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground sm:h-[300px]">
             {error}
           </div>
         ) : data.length === 0 ? (
-          <div className="flex h-[300px] items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground sm:h-[300px]">
             No chart data available
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <div className="h-[200px] sm:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data}>
               <defs>
                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
@@ -180,6 +181,7 @@ export function PriceChart({ uic, assetType }: Props) {
               />
             </AreaChart>
           </ResponsiveContainer>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-dvh bg-background">
       {/* Sidebar */}
       <aside className="hidden w-64 flex-col border-r bg-muted/30 md:flex">
         <div className="flex h-14 items-center border-b px-4">
@@ -79,9 +79,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile header */}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center border-b px-4 md:hidden">
+        <header className="flex h-14 items-center border-b px-4 pt-[env(safe-area-inset-top)] md:hidden">
           <h1 className="text-lg font-semibold">Portfolio Copilot</h1>
-          <nav className="ml-auto flex gap-2">
+          <nav className="ml-auto flex gap-1">
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -90,14 +90,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-label={item.label}
                   className={cn(
-                    "rounded-md px-3 py-1.5 text-sm font-medium",
+                    "rounded-md p-2.5 transition-colors active:bg-muted",
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground"
                   )}
                 >
-                  {item.label}
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d={item.icon}
+                    />
+                  </svg>
                 </Link>
               );
             })}
@@ -105,7 +118,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -56,9 +56,9 @@ export function TopHoldings({ holdings, portfolioCurrency }: Props) {
             <TableRow>
               <TableHead>Symbol</TableHead>
               <TableHead className="hidden md:table-cell">Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Qty</TableHead>
-              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="hidden sm:table-cell">Type</TableHead>
+              <TableHead className="hidden sm:table-cell text-right">Qty</TableHead>
+              <TableHead className="hidden sm:table-cell text-right">Price</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead className="text-right">Weight</TableHead>
               <TableHead className="text-right">P&L</TableHead>
@@ -83,15 +83,15 @@ export function TopHoldings({ holdings, portfolioCurrency }: Props) {
                 <TableCell className="hidden max-w-[200px] truncate md:table-cell">
                   {h.name}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {h.assetType}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden sm:table-cell text-right">
                   {formatNumber(h.quantity)}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden sm:table-cell text-right">
                   {formatCurrency(h.currentPrice, h.currency)}
                 </TableCell>
                 <TableCell className="text-right font-medium">
