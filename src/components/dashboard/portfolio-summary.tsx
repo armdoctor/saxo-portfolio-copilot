@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,11 +24,16 @@ export function PortfolioSummary({
   currency,
   snapshotAt,
 }: Props) {
+  const AUTO_REFRESH_MS = 30_000;
+
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const refreshingRef = useRef(false);
 
-  async function handleRefresh() {
+  const doRefresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setRefreshing(true);
     setError(null);
     try {
@@ -41,9 +46,15 @@ export function PortfolioSummary({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Refresh failed");
     } finally {
+      refreshingRef.current = false;
       setRefreshing(false);
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    const id = setInterval(doRefresh, AUTO_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [doRefresh]);
 
   return (
     <Card>
@@ -57,7 +68,7 @@ export function PortfolioSummary({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleRefresh}
+              onClick={doRefresh}
               disabled={refreshing}
             >
               {refreshing ? "Refreshing..." : "Refresh"}
