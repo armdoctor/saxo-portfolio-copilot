@@ -297,6 +297,33 @@ export async function fetchInfoPrice(
   );
 }
 
+// --- Instrument Search ---
+
+export interface SaxoInstrumentResult {
+  Identifier: number;
+  Symbol: string;
+  Description: string;
+  AssetType: string;
+  CurrencyCode: string;
+  ExchangeId: string;
+  SummaryType?: string;
+}
+
+export interface SaxoInstrumentSearchResponse {
+  Data: SaxoInstrumentResult[];
+}
+
+export async function searchInstruments(
+  userId: string,
+  query: string,
+  top = 20
+): Promise<SaxoInstrumentSearchResponse> {
+  return saxoFetch(
+    userId,
+    `/ref/v1/instruments?Keywords=${encodeURIComponent(query)}&$top=${top}&IncludeNonTradable=false`
+  );
+}
+
 // --- Instrument Details ---
 
 export async function fetchInstrumentDetails(
