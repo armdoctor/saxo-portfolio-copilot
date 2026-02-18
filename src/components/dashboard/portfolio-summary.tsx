@@ -48,7 +48,7 @@ export function PortfolioSummary({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Portfolio Overview</CardTitle>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
@@ -74,20 +74,20 @@ export function PortfolioSummary({
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <p className="text-sm text-muted-foreground">Total Value</p>
-            <p className="text-3xl font-bold">
+            <p className="text-2xl font-bold sm:text-3xl">
               {formatCurrency(totalValue, currency)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Cash Balance</p>
-            <p className="text-2xl font-semibold">
+            <p className="text-xl font-semibold sm:text-2xl">
               {formatCurrency(cashBalance, currency)}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Unrealized P&L</p>
             <p
-              className={`text-2xl font-semibold ${
+              className={`text-xl font-semibold sm:text-2xl ${
                 unrealizedPnl >= 0 ? "text-green-600" : "text-red-600"
               }`}
             >

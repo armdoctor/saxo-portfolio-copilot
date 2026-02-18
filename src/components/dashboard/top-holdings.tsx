@@ -60,7 +60,7 @@ export function TopHoldings({ holdings, portfolioCurrency }: Props) {
               <TableHead className="hidden sm:table-cell text-right">Qty</TableHead>
               <TableHead className="hidden sm:table-cell text-right">Price</TableHead>
               <TableHead className="text-right">Value</TableHead>
-              <TableHead className="text-right">Weight</TableHead>
+              <TableHead className="hidden sm:table-cell text-right">Weight</TableHead>
               <TableHead className="text-right">P&L</TableHead>
             </TableRow>
           </TableHeader>
@@ -97,7 +97,7 @@ export function TopHoldings({ holdings, portfolioCurrency }: Props) {
                 <TableCell className="text-right font-medium">
                   {formatCurrency(h.marketValue, portfolioCurrency)}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden sm:table-cell text-right">
                   {formatWeight(h.weight)}
                 </TableCell>
                 <TableCell

@@ -55,11 +55,11 @@ export function AssetBreakdown({ breakdown, totalValue, currency }: Props) {
                   />
                   <span>{assetClass}</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <span className="text-muted-foreground">
                     {formatWeight(pct)}
                   </span>
-                  <span className="w-24 text-right font-medium">
+                  <span className="text-right font-medium">
                     {formatCurrency(value, currency)}
                   </span>
                 </div>

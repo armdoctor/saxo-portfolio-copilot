@@ -72,11 +72,11 @@ export function HoldingDetail({ holding, portfolioCurrency }: Props) {
             <p className="text-muted-foreground">{holding.name}</p>
           </div>
 
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <p className="text-2xl font-bold">
               {formatCurrency(holding.marketValue, portfolioCurrency)}
             </p>
-            <div className="flex items-center justify-end gap-3 text-sm">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:justify-end">
               <span className="text-muted-foreground">
                 {formatNumber(holding.quantity)} shares
               </span>
