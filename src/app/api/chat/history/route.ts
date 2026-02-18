@@ -8,20 +8,25 @@ export async function GET() {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const rows = await prisma.chatMessage.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "asc" },
-    take: 200,
-  });
+  try {
+    const rows = await prisma.chatMessage.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" },
+      take: 200,
+    });
 
-  const messages = rows.map((row) => ({
-    id: row.id,
-    role: row.role,
-    createdAt: row.createdAt,
-    parts: [{ type: "text" as const, text: row.content }],
-  }));
+    const messages = rows.map((row) => ({
+      id: row.id,
+      role: row.role,
+      createdAt: row.createdAt,
+      parts: [{ type: "text" as const, text: row.content }],
+    }));
 
-  return NextResponse.json(messages);
+    return NextResponse.json(messages);
+  } catch (err) {
+    console.error("[Chat History] Failed to load:", err);
+    return NextResponse.json({ error: "Failed to load messages" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
