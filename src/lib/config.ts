@@ -14,6 +14,7 @@ const RECOMMENDED_ENV_VARS = [
 
 const OPTIONAL_ENV_VARS = [
   "OPENAI_API_KEY",
+  "FINNHUB_API_KEY",
   "SAXO_APP_SECRET",
   "SAXO_ENV",
 ] as const;
@@ -57,4 +58,8 @@ export function validateEnv() {
 
 export function isOpenAIConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
+}
+
+export function isFinnhubConfigured(): boolean {
+  return !!process.env.FINNHUB_API_KEY;
 }
