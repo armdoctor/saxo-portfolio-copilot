@@ -59,3 +59,60 @@ export async function fetchCompanyNews(
     return [];
   }
 }
+
+// ── Company profiles (industry) ────────────────────────────────────────────
+
+export interface CompanyProfile {
+  industry: string;
+}
+
+const profileCache = new Map<string, { profile: CompanyProfile; fetchedAt: number }>();
+const PROFILE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export async function fetchCompanyProfile(symbol: string): Promise<CompanyProfile> {
+  const key = symbol.toUpperCase();
+  const cached = profileCache.get(key);
+  const now = Date.now();
+
+  if (cached && now - cached.fetchedAt < PROFILE_CACHE_TTL_MS) {
+    return cached.profile;
+  }
+
+  const apiKey = process.env.FINNHUB_API_KEY;
+  if (!apiKey) return { industry: "Other" };
+
+  try {
+    const res = await fetch(
+      `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(key)}&token=${apiKey}`
+    );
+    if (!res.ok) throw new Error(`Finnhub profile ${res.status}`);
+    const data = await res.json();
+    const profile: CompanyProfile = {
+      industry: data.finnhubIndustry || "Other",
+    };
+    profileCache.set(key, { profile, fetchedAt: now });
+    return profile;
+  } catch (err) {
+    console.error(`[Finnhub] Failed to fetch profile for ${key}:`, err);
+    return { industry: "Other" };
+  }
+}
+
+// ── Topic classification ───────────────────────────────────────────────────
+
+const TOPIC_PATTERNS: [string, RegExp][] = [
+  ["Earnings", /earnings|eps|revenue|quarterly|profit|loss|guidance|beat|miss|forecast|outlook/i],
+  ["Deals", /acqui|merger|takeover|deal|buyout|purchase|bid|joint.venture|partnership/i],
+  ["Products", /launch|release|unveil|announc|new product|introduce|debut|rollout/i],
+  ["Regulation", /sec|ftc|doj|regulat|fine|lawsuit|settlement|investig|probe|sanction|compliance/i],
+  ["Leadership", /\bceo\b|\bcfo\b|\bcoo\b|appoint|resign|hire|executive|board|director/i],
+  ["Analyst", /upgrade|downgrade|price target|analyst|rating|\bbuy\b|\bsell\b|\bhold\b|overweight|underweight/i],
+];
+
+export function classifyTopic(headline: string, summary: string): string {
+  const text = headline + " " + (summary ?? "");
+  for (const [topic, pattern] of TOPIC_PATTERNS) {
+    if (pattern.test(text)) return topic;
+  }
+  return "Markets";
+}

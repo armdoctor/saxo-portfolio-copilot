@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { isFinnhubConfigured } from "@/lib/config";
 import {
+  classifyTopic,
   cleanSymbolForFinnhub,
   fetchCompanyNews,
-  FinnhubArticle,
+  fetchCompanyProfile,
 } from "@/lib/news/finnhub";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
@@ -43,34 +44,57 @@ export async function GET() {
       return NextResponse.json({ articles: [] });
     }
 
-    // Dedupe and clean symbols, cap at 8
-    const symbols = [
-      ...new Set(
-        snapshot.holdings.map((h) => cleanSymbolForFinnhub(h.symbol))
-      ),
-    ].slice(0, 8);
-
-    const results = await Promise.allSettled(
-      symbols.map((s) => fetchCompanyNews(s))
-    );
-
-    const seen = new Set<number>();
-    const articles: FinnhubArticle[] = [];
-
-    for (const result of results) {
-      if (result.status !== "fulfilled") continue;
-      for (const article of result.value) {
-        if (!seen.has(article.id)) {
-          seen.add(article.id);
-          articles.push(article);
-        }
+    // Build symbol → holding name map, dedupe, cap at 8
+    const symbolMap = new Map<string, string>();
+    for (const h of snapshot.holdings) {
+      const clean = cleanSymbolForFinnhub(h.symbol);
+      if (!symbolMap.has(clean)) {
+        symbolMap.set(clean, h.name);
       }
     }
+    const entries = [...symbolMap.entries()].slice(0, 8);
+    const symbols = entries.map(([s]) => s);
 
-    // Sort by datetime descending, return top 20
+    // Fetch news + profiles in parallel
+    const [newsResults, profileResults] = await Promise.all([
+      Promise.allSettled(symbols.map((s) => fetchCompanyNews(s))),
+      Promise.allSettled(symbols.map((s) => fetchCompanyProfile(s))),
+    ]);
+
+    const articles = entries.flatMap(([symbol, holdingName], i) => {
+      const newsResult = newsResults[i];
+      const profileResult = profileResults[i];
+
+      if (newsResult.status !== "fulfilled" || newsResult.value.length === 0) {
+        return [];
+      }
+
+      const industry =
+        profileResult.status === "fulfilled"
+          ? profileResult.value.industry
+          : "Other";
+
+      return newsResult.value
+        .sort((a, b) => b.datetime - a.datetime)
+        .slice(0, 5)
+        .map((a) => ({
+          id: a.id,
+          datetime: a.datetime,
+          headline: a.headline,
+          source: a.source,
+          summary: a.summary,
+          url: a.url,
+          symbol,
+          companyName: holdingName,
+          topic: classifyTopic(a.headline, a.summary),
+          industry,
+        }));
+    });
+
+    // Sort all articles by recency
     articles.sort((a, b) => b.datetime - a.datetime);
 
-    return NextResponse.json({ articles: articles.slice(0, 20) });
+    return NextResponse.json({ articles });
   } catch (error) {
     console.error("[News] Failed to fetch news:", error);
     return NextResponse.json(
