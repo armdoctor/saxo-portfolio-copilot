@@ -17,13 +17,13 @@ const transport = new DefaultChatTransport({ api: "/api/chat" });
 
 function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
   const [input, setInput] = useState("");
+  const savedCountRef = useRef(initialMessages.length);
   const { messages, setMessages, sendMessage, status, error } = useChat({
     transport,
     messages: initialMessages,
   });
 
   const isLoading = status === "streaming" || status === "submitted";
-  const prevStatusRef = useRef(status);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll on new messages
@@ -33,31 +33,33 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
 
   // Persist new messages when streaming completes
   useEffect(() => {
-    const wasStreaming =
-      prevStatusRef.current === "streaming" ||
-      prevStatusRef.current === "submitted";
-    prevStatusRef.current = status;
+    if (status !== "ready") return;
+    if (messages.length <= savedCountRef.current) return;
 
-    if (wasStreaming && status === "ready" && messages.length >= 2) {
-      const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const unsaved = messages.slice(savedCountRef.current);
+    const lastUser = unsaved.findLast((m) => m.role === "user");
+    const lastAssistant = unsaved.findLast((m) => m.role === "assistant");
 
-      const userText = lastUser?.parts
-        .filter((p): p is { type: "text"; text: string } => p.type === "text")
-        .map((p) => p.text)
-        .join("\n\n");
-      const assistantText = lastAssistant?.parts
-        .filter((p): p is { type: "text"; text: string } => p.type === "text")
-        .map((p) => p.text)
-        .join("\n\n");
+    const userText = lastUser?.parts
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join("\n\n");
+    const assistantText = lastAssistant?.parts
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join("\n\n");
 
-      if (userText && assistantText) {
-        fetch("/api/chat/history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userMessage: userText, assistantMessage: assistantText }),
-        }).catch(() => {});
-      }
+    if (userText && assistantText) {
+      savedCountRef.current = messages.length;
+      fetch("/api/chat/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userMessage: userText, assistantMessage: assistantText }),
+      })
+        .then((res) => {
+          if (!res.ok) console.error("[Chat] Failed to save messages:", res.status);
+        })
+        .catch((err) => console.error("[Chat] Failed to save messages:", err));
     }
   }, [status, messages]);
 
@@ -79,6 +81,7 @@ function ChatContent({ initialMessages }: { initialMessages: UIMessage[] }) {
 
   async function handleClearChat() {
     await fetch("/api/chat/history", { method: "DELETE" });
+    savedCountRef.current = 0;
     setMessages([]);
   }
 
@@ -226,9 +229,15 @@ export default function ChatPage() {
 
   useEffect(() => {
     fetch("/api/chat/history")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`History fetch failed: ${res.status}`);
+        return res.json();
+      })
       .then((msgs) => setInitialMessages(msgs))
-      .catch(() => setInitialMessages([]));
+      .catch((err) => {
+        console.error("[Chat] Failed to load history:", err);
+        setInitialMessages([]);
+      });
   }, []);
 
   if (initialMessages === null) {

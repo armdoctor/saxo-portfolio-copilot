@@ -17,6 +17,7 @@ export async function GET() {
   const messages = rows.map((row) => ({
     id: row.id,
     role: row.role,
+    createdAt: row.createdAt,
     parts: [{ type: "text" as const, text: row.content }],
   }));
 
@@ -35,12 +36,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing messages" }, { status: 400 });
   }
 
-  await prisma.chatMessage.createMany({
-    data: [
-      { userId: session.user.id, role: "user", content: userMessage },
-      { userId: session.user.id, role: "assistant", content: assistantMessage },
-    ],
-  });
+  try {
+    await prisma.chatMessage.createMany({
+      data: [
+        { userId: session.user.id, role: "user", content: userMessage },
+        { userId: session.user.id, role: "assistant", content: assistantMessage },
+      ],
+    });
+  } catch (err) {
+    console.error("[Chat History] Failed to save:", err);
+    return NextResponse.json({ error: "Failed to save messages" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
