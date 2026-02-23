@@ -60,6 +60,3 @@ export function isOpenAIConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
 }
 
-export function isFinnhubConfigured(): boolean {
-  return !!process.env.FINNHUB_API_KEY;
-}

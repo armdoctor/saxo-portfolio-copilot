@@ -5,7 +5,6 @@ import { PortfolioSummary } from "@/components/dashboard/portfolio-summary";
 import { AssetBreakdown } from "@/components/dashboard/asset-breakdown";
 import { CurrencyExposure } from "@/components/dashboard/currency-exposure";
 import { TopHoldings } from "@/components/dashboard/top-holdings";
-import { NewsFeed } from "@/components/dashboard/news-feed";
 import { FreshnessBanner } from "@/components/freshness-banner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -82,8 +81,6 @@ export default async function DashboardPage() {
         }))}
         portfolioCurrency={snapshot.currency}
       />
-
-      <NewsFeed />
     </div>
   );
 }
