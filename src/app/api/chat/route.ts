@@ -7,6 +7,7 @@ import { isOpenAIConfigured } from "@/lib/config";
 import { rateLimit } from "@/lib/rate-limit";
 import {
   fetchAccountPerformance,
+  fetchAccountSummary,
   fetchOrderActivities,
 } from "@/lib/saxo/client";
 
@@ -20,7 +21,7 @@ CORE BEHAVIOR:
 - EVERY response must reference the user's specific holdings by name, ticker, and numbers. Never give generic market commentary without tying it back to their actual positions.
 - When the user asks about market events, sectors, or themes, immediately identify which of their holdings are affected and by how much (by weight, P&L, exposure).
 - Example: if asked "how does the tech drawdown affect me?", identify their tech-exposed positions (e.g. AMZN, NVDA, SMH), state their combined weight, unrealized P&L, and what it means for their portfolio.
-- Use the tools for ADDITIONAL data beyond what's in the portfolio context: getAccountPerformance for historical returns over time AND for total commissions/fees paid, getOrderHistory for recent trades and per-trade cost data.
+- Use the tools for ADDITIONAL data beyond what's in the portfolio context: getAccountPerformance for historical returns over time, getOrderHistory for recent trades, getCommissionsAndFees for total commissions and fees paid.
 - When presenting data, include "As of <timestamp>" from the snapshot.
 - If the snapshot data includes a staleWarning, mention it.
 - Format currency values with appropriate symbols and 2 decimal places. Format percentages with 1-2 decimal places.
@@ -192,7 +193,7 @@ export async function POST(req: Request) {
 
       getAccountPerformance: tool({
         description:
-          "Get historical performance metrics for the user's Saxo account over a time period. Returns time-weighted returns, account summary, benchmark comparisons, AND total commissions/fees paid (in TradeActivity.CommissionsAndFees or AccountSummary). Use this when the user asks about portfolio performance over time, returns, how their investments have performed, OR how much they have spent on commissions, fees, or trading costs.",
+          "Get historical performance metrics for the user's Saxo account over a time period. Returns time-weighted returns and account summary. Use this when the user asks about portfolio performance over time, returns, or how their investments have performed. For commissions/fees use getCommissionsAndFees instead.",
         inputSchema: z.object({
           fromDate: z
             .string()
@@ -238,8 +239,11 @@ export async function POST(req: Request) {
               `[Chat] Performance data keys: ${Object.keys(perfData).join(", ")}`
             );
 
-            // Trim time series to monthly samples to avoid token bloat
+            // Trim to reduce token usage
             const trimmed = { ...perfData };
+            // Drop benchmark series — large and rarely needed
+            delete trimmed.BenchmarkPerformance;
+            // Downsample time series to ~monthly
             if (
               Array.isArray(trimmed.TimeWeightedPerformance) &&
               trimmed.TimeWeightedPerformance.length > 30
@@ -266,33 +270,60 @@ export async function POST(req: Request) {
 
       getOrderHistory: tool({
         description:
-          "Get the user's recent executed orders/trades from Saxo Bank. Returns filled orders with prices, amounts, timestamps, and per-trade commission/cost data. Use this when the user asks about their recent trades, order history, what they bought/sold, transaction details, or per-trade costs. For total commissions paid over a period, prefer getAccountPerformance which has aggregate fee totals.",
+          "Get the user's recent executed orders/trades from Saxo Bank. Returns filled orders with prices, amounts, and timestamps. Use this when the user asks about their recent trades, order history, what they bought/sold, or transaction details. For total commissions paid use getCommissionsAndFees instead.",
         inputSchema: z.object({}),
         execute: async (): Promise<Record<string, unknown>> => {
-          console.log(
-            `[Chat] Tool call: getOrderHistory for user ${userId}`
-          );
-
+          console.log(`[Chat] Tool call: getOrderHistory for user ${userId}`);
           try {
-            const orderData = await fetchOrderActivities(userId, 200);
-            // Log first entry to debug available fields
+            const orderData = await fetchOrderActivities(userId, 100);
             const data = orderData as Record<string, unknown>;
             if (Array.isArray(data.Data) && data.Data.length > 0) {
               console.log(`[Chat] Order activity sample keys: ${Object.keys(data.Data[0]).join(", ")}`);
             }
-            // Trim to most recent 50 fills to avoid token bloat
-            if (Array.isArray(data.Data) && data.Data.length > 50) {
+            // Trim to 20 most recent to keep tokens manageable
+            if (Array.isArray(data.Data) && data.Data.length > 20) {
               data._totalOrders = data.Data.length;
-              data.Data = data.Data.slice(0, 50);
-              data._note = "Showing 50 most recent orders. Ask for more if needed.";
+              data.Data = data.Data.slice(0, 20);
+              data._note = "Showing 20 most recent orders.";
             }
-            return {
-              fetchedAt: new Date().toISOString(),
-              ...data,
-            };
+            return { fetchedAt: new Date().toISOString(), ...data };
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err);
             console.error(`[Chat] getOrderHistory error: ${errMsg}`);
+            return { error: errMsg };
+          }
+        },
+      }),
+
+      getCommissionsAndFees: tool({
+        description:
+          "Get total commissions and fees paid by the user over a time period. Returns AccountSummary and TradeActivity which include aggregate commission/fee figures. Use this whenever the user asks how much they have spent on commissions, fees, or trading costs.",
+        inputSchema: z.object({
+          fromDate: z.string().optional().describe("Start date YYYY-MM-DD. Defaults to 1 year ago."),
+          toDate: z.string().optional().describe("End date YYYY-MM-DD. Defaults to today."),
+        }),
+        execute: async (params): Promise<Record<string, unknown>> => {
+          console.log(`[Chat] Tool call: getCommissionsAndFees for user ${userId}`);
+          try {
+            const connection = await prisma.saxoConnection.findUnique({
+              where: { userId },
+              include: { accounts: true },
+            });
+            if (!connection?.clientKey) {
+              return { error: "No Saxo connection found." };
+            }
+            const defaultAccount = connection.accounts[0];
+            const data = await fetchAccountSummary(
+              userId,
+              connection.clientKey,
+              defaultAccount?.accountKey,
+              params.fromDate,
+              params.toDate
+            );
+            return { fetchedAt: new Date().toISOString(), ...data };
+          } catch (err) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            console.error(`[Chat] getCommissionsAndFees error: ${errMsg}`);
             return { error: errMsg };
           }
         },

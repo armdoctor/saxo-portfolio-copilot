@@ -237,7 +237,26 @@ export async function fetchAccountPerformance(
   if (!fromDate && !toDate) params += `&StandardPeriod=Year`;
   return saxoFetch(
     userId,
-    `/hist/v3/perf/${encodeURIComponent(clientKey)}?FieldGroups=AccountSummary,TimeWeightedPerformance,BenchmarkPerformance,TradeActivity${params}`
+    `/hist/v3/perf/${encodeURIComponent(clientKey)}?FieldGroups=AccountSummary,TimeWeightedPerformance,TradeActivity${params}`
+  );
+}
+
+/** Lightweight fetch — only AccountSummary + TradeActivity (no time series). Use for commission/fee queries. */
+export async function fetchAccountSummary(
+  userId: string,
+  clientKey: string,
+  accountKey?: string,
+  fromDate?: string,
+  toDate?: string
+): Promise<Record<string, unknown>> {
+  let params = "";
+  if (accountKey) params += `&AccountKey=${encodeURIComponent(accountKey)}`;
+  if (fromDate) params += `&FromDate=${fromDate}`;
+  if (toDate) params += `&ToDate=${toDate}`;
+  if (!fromDate && !toDate) params += `&StandardPeriod=Year`;
+  return saxoFetch(
+    userId,
+    `/hist/v3/perf/${encodeURIComponent(clientKey)}?FieldGroups=AccountSummary,TradeActivity${params}`
   );
 }
 
