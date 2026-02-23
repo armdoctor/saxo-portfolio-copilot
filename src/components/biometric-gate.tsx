@@ -29,9 +29,22 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     }
     fetch("/api/webauthn/status")
       .then((r) => r.json())
-      .then((d) => setState(d.hasCredential ? "locked" : "unlocked"))
+      .then((d) => {
+        if (d.hasCredential) {
+          setState("locked");
+        } else {
+          setState("unlocked");
+        }
+      })
       .catch(() => setState("unlocked")); // fail open
   }, []);
+
+  // Auto-trigger biometric prompt as soon as the lock screen appears
+  useEffect(() => {
+    if (state === "locked" && !busy) {
+      unlock();
+    }
+  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unlock = useCallback(async () => {
     setBusy(true);
@@ -126,7 +139,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
               />
             </svg>
           )}
-          {busy ? "Verifying…" : "Unlock with Face ID / Touch ID"}
+          {busy ? "Verifying…" : "Try again"}
         </button>
       </div>
     );
