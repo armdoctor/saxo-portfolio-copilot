@@ -34,7 +34,7 @@ function assetLabel(type: string) {
 function ResultCard({ r }: { r: InstrumentResult }) {
   return (
     <Link
-      href={`/holdings/${r.uic}/${r.assetType}`}
+      href={`/instruments/${r.uic}/${r.assetType}?symbol=${encodeURIComponent(r.symbol)}&name=${encodeURIComponent(r.name)}`}
       className="group flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-muted/40"
     >
       <div className="min-w-0">

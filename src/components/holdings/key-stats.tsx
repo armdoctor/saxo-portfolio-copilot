@@ -13,7 +13,7 @@ interface HoldingData {
 }
 
 interface Props {
-  holding: HoldingData;
+  holding?: HoldingData | null;
   portfolioCurrency: string;
   quote: Record<string, unknown> | null;
   details: Record<string, unknown> | null;
@@ -86,7 +86,7 @@ export function KeyStats({ holding, portfolioCurrency, quote, details, loading }
   // Use live price if available, otherwise snapshot price
   const displayPrice = hasLiveQuote && quoteData.Mid
     ? (quoteData.Mid as number)
-    : holding.currentPrice;
+    : (holding?.currentPrice ?? null);
 
   // Extract instrument details
   const fundamentals = details
@@ -102,29 +102,31 @@ export function KeyStats({ holding, portfolioCurrency, quote, details, loading }
     fundamentals &&
     (fundamentals.pe || fundamentals.marketCap || fundamentals.dividendYield || fundamentals.eps);
 
-  const pnl = holding.unrealizedPnl ?? 0;
+  const pnl = holding?.unrealizedPnl ?? 0;
 
   return (
     <div className="space-y-4">
-      {/* Position data — always available from snapshot */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Position</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            <Stat label="Price" value={displayPrice} />
-            <Stat label="Market Value" value={`${portfolioCurrency} ${holding.marketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-            <Stat label="Quantity" value={holding.quantity} />
-            <Stat
-              label="Unrealized P&L"
-              value={`${pnl >= 0 ? "+" : ""}${pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            />
-            <Stat label="Weight" value={`${holding.weight.toFixed(1)}%`} />
-            <Stat label="Currency" value={holding.currency} />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Position data — only shown when viewing a portfolio holding */}
+      {holding && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Position</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+              <Stat label="Price" value={displayPrice} />
+              <Stat label="Market Value" value={`${portfolioCurrency} ${holding.marketValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+              <Stat label="Quantity" value={holding.quantity} />
+              <Stat
+                label="Unrealized P&L"
+                value={`${pnl >= 0 ? "+" : ""}${pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              />
+              <Stat label="Weight" value={`${holding.weight.toFixed(1)}%`} />
+              <Stat label="Currency" value={holding.currency} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Live quote — only shown when SIM provides real-time data */}
       {hasLiveQuote && (
