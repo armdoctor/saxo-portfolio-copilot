@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
     const results = (data.Data ?? []).map((r) => ({
       uic: r.Identifier,
       symbol: r.Symbol,
+      saxoSymbol: r.ExchangeId ? `${r.Symbol}:${r.ExchangeId.toLowerCase()}` : r.Symbol,
       name: r.Description,
       assetType: r.AssetType,
       currency: r.CurrencyCode,

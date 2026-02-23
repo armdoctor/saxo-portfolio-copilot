@@ -25,6 +25,7 @@ interface ChartPoint {
 interface Props {
   uic: number;
   assetType: string;
+  saxoSymbol?: string;
 }
 
 function formatTooltipDate(dateStr: string, range: Range) {
@@ -50,7 +51,7 @@ function formatXAxis(dateStr: string, range: Range) {
   return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 }
 
-export function PriceChart({ uic, assetType }: Props) {
+export function PriceChart({ uic, assetType, saxoSymbol }: Props) {
   const [range, setRange] = useState<Range>("1M");
   const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +61,9 @@ export function PriceChart({ uic, assetType }: Props) {
     setLoading(true);
     setError(null);
     try {
+      const symbolParam = saxoSymbol ? `&symbol=${encodeURIComponent(saxoSymbol)}` : "";
       const res = await fetch(
-        `/api/holdings/${uic}/${encodeURIComponent(assetType)}/chart?range=${r}`
+        `/api/holdings/${uic}/${encodeURIComponent(assetType)}/chart?range=${r}${symbolParam}`
       );
       if (res.status === 403) {
         setData([]);
@@ -84,7 +86,7 @@ export function PriceChart({ uic, assetType }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [uic, assetType]);
+  }, [uic, assetType, saxoSymbol]);
 
   useEffect(() => {
     fetchChart(range);

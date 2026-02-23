@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { fetchChartData, type ChartRange } from "@/lib/saxo/client";
 import { resolveYahooSymbol } from "@/lib/yahoo/symbol-resolver";
-import { fetchYahooChart } from "@/lib/yahoo/client";
+import { fetchYahooChart, saxoToYahooSymbol } from "@/lib/yahoo/client";
 import { NextRequest, NextResponse } from "next/server";
 
 const VALID_RANGES = new Set(["1D", "1W", "1M", "6M", "1Y", "5Y"]);
@@ -23,6 +23,7 @@ export async function GET(
 
   const { uic, assetType } = await params;
   const range = request.nextUrl.searchParams.get("range") || "1M";
+  const symbolParam = request.nextUrl.searchParams.get("symbol");
 
   if (!VALID_RANGES.has(range)) {
     return NextResponse.json({ error: "Invalid range" }, { status: 400 });
@@ -33,7 +34,11 @@ export async function GET(
 
   // Try Yahoo Finance first
   try {
-    const yahooSymbol = await resolveYahooSymbol(session.user.id, uicNum, assetType);
+    // Prefer DB lookup (portfolio holdings), fall back to symbol passed from search
+    const yahooSymbol =
+      (await resolveYahooSymbol(session.user.id, uicNum, assetType)) ??
+      (symbolParam ? saxoToYahooSymbol(symbolParam) : null);
+
     if (yahooSymbol) {
       const yahooData = await fetchYahooChart(yahooSymbol, chartRange);
       return NextResponse.json(yahooData);

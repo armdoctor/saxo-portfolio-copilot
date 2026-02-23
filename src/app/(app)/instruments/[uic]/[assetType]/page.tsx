@@ -7,13 +7,13 @@ export default async function InstrumentPage({
   searchParams,
 }: {
   params: Promise<{ uic: string; assetType: string }>;
-  searchParams: Promise<{ symbol?: string; name?: string }>;
+  searchParams: Promise<{ symbol?: string; saxoSymbol?: string; name?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
   const { uic, assetType } = await params;
-  const { symbol, name } = await searchParams;
+  const { symbol, saxoSymbol, name } = await searchParams;
 
   const uicNum = parseInt(uic, 10);
   if (isNaN(uicNum)) notFound();
@@ -23,6 +23,7 @@ export default async function InstrumentPage({
       uic={uicNum}
       assetType={assetType}
       symbol={symbol ?? uic}
+      saxoSymbol={saxoSymbol}
       name={name ?? ""}
     />
   );

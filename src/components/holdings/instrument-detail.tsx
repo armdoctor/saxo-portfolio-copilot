@@ -12,10 +12,11 @@ interface Props {
   uic: number;
   assetType: string;
   symbol: string;
+  saxoSymbol?: string;
   name: string;
 }
 
-export function InstrumentDetail({ uic, assetType, symbol, name }: Props) {
+export function InstrumentDetail({ uic, assetType, symbol, saxoSymbol, name }: Props) {
   const [quote, setQuote] = useState<Record<string, unknown> | null>(null);
   const [details, setDetails] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,7 @@ export function InstrumentDetail({ uic, assetType, symbol, name }: Props) {
         </div>
       </div>
 
-      <PriceChart uic={uic} assetType={assetType} />
+      <PriceChart uic={uic} assetType={assetType} saxoSymbol={saxoSymbol} />
 
       <KeyStats
         holding={null}
