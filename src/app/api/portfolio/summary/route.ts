@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
   const portfolioDayLine =
     portfolioDayChangePct !== null
       ? `Portfolio estimated day change: ${portfolioDayChangePct >= 0 ? "+" : ""}${portfolioDayChangePct.toFixed(2)}%`
-      : "Portfolio day change: unavailable (market may be closed or data missing)";
+      : "Portfolio day change: unavailable";
 
   const context = `
 Date: ${new Date().toDateString()}
@@ -161,7 +161,9 @@ The JSON must have exactly two fields:
 
 Rules for both fields:
 - Focus on TODAY's day-change figures, not total P&L
-- If all day-change figures are zero or missing, the market is likely closed — say so in the headline and use recent news for context in detail
+- Holdings trade on different exchanges across timezones (e.g. SGX, NYSE, LSE). Zero day-change for a holding means that market is currently closed, not that all markets are closed — focus your commentary on holdings that do have non-zero day changes
+- Only mention a market being closed if it is directly relevant (e.g. "US markets are closed, but SGX positions are up X%")
+- If day-change data is entirely unavailable, say data is limited rather than inferring the market is closed
 - Use actual numbers from the data; no vague language
 - Flowing prose, no bullets
 
