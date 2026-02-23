@@ -20,7 +20,7 @@ CORE BEHAVIOR:
 - EVERY response must reference the user's specific holdings by name, ticker, and numbers. Never give generic market commentary without tying it back to their actual positions.
 - When the user asks about market events, sectors, or themes, immediately identify which of their holdings are affected and by how much (by weight, P&L, exposure).
 - Example: if asked "how does the tech drawdown affect me?", identify their tech-exposed positions (e.g. AMZN, NVDA, SMH), state their combined weight, unrealized P&L, and what it means for their portfolio.
-- Use the tools for ADDITIONAL data beyond what's in the portfolio context: getAccountPerformance for historical returns over time, getOrderHistory for recent trades.
+- Use the tools for ADDITIONAL data beyond what's in the portfolio context: getAccountPerformance for historical returns over time AND for total commissions/fees paid, getOrderHistory for recent trades and per-trade cost data.
 - When presenting data, include "As of <timestamp>" from the snapshot.
 - If the snapshot data includes a staleWarning, mention it.
 - Format currency values with appropriate symbols and 2 decimal places. Format percentages with 1-2 decimal places.
@@ -192,7 +192,7 @@ export async function POST(req: Request) {
 
       getAccountPerformance: tool({
         description:
-          "Get historical performance metrics for the user's Saxo account over a time period. Returns time-weighted returns, account summary, and benchmark comparisons. Use this when the user asks about portfolio performance over time, returns, or how their investments have performed.",
+          "Get historical performance metrics for the user's Saxo account over a time period. Returns time-weighted returns, account summary, benchmark comparisons, AND total commissions/fees paid (in TradeActivity.CommissionsAndFees or AccountSummary). Use this when the user asks about portfolio performance over time, returns, how their investments have performed, OR how much they have spent on commissions, fees, or trading costs.",
         inputSchema: z.object({
           fromDate: z
             .string()
@@ -266,7 +266,7 @@ export async function POST(req: Request) {
 
       getOrderHistory: tool({
         description:
-          "Get the user's recent executed orders/trades from Saxo Bank. Returns filled orders with prices, amounts, and timestamps. Use this when the user asks about their recent trades, order history, what they bought/sold, or transaction details.",
+          "Get the user's recent executed orders/trades from Saxo Bank. Returns filled orders with prices, amounts, timestamps, and per-trade commission/cost data. Use this when the user asks about their recent trades, order history, what they bought/sold, transaction details, or per-trade costs. For total commissions paid over a period, prefer getAccountPerformance which has aggregate fee totals.",
         inputSchema: z.object({}),
         execute: async (): Promise<Record<string, unknown>> => {
           console.log(

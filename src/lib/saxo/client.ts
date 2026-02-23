@@ -249,7 +249,7 @@ export async function fetchOrderActivities(
 ): Promise<Record<string, unknown>> {
   return saxoFetch(
     userId,
-    `/cs/v1/audit/orderactivities?EntryType=Last&FieldGroups=DisplayAndFormat&$top=${top}`
+    `/cs/v1/audit/orderactivities?EntryType=Last&FieldGroups=DisplayAndFormat,Cost&$top=${top}`
   );
 }
 
