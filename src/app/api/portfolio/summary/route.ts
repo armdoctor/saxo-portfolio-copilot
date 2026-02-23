@@ -165,7 +165,7 @@ ${context}`;
     const { text } = await generateText({
       model: openai("gpt-4o-mini"),
       messages: [{ role: "user", content: prompt }],
-      maxTokens: 300,
+      maxOutputTokens: 300,
     });
 
     const summary = text.trim();
