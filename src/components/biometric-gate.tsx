@@ -4,18 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 
 type State = "loading" | "unlocked" | "locked";
 
-const VERIFIED_KEY = "bio-verified-at";
-const SESSION_MS = 8 * 60 * 60 * 1000; // 8 hours
-
-function sessionValid() {
-  try {
-    const raw = sessionStorage.getItem(VERIFIED_KEY);
-    if (!raw) return false;
-    return Date.now() - parseInt(raw, 10) < SESSION_MS;
-  } catch {
-    return false;
-  }
-}
+// In-memory flag — resets on every page load/refresh/sign-out.
+// Persists only across client-side navigation within the same page session.
+let pageVerified = false;
 
 export function BiometricGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>("loading");
@@ -23,7 +14,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionValid()) {
+    if (pageVerified) {
       setState("unlocked");
       return;
     }
@@ -65,7 +56,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
       const verData = await verRes.json();
       if (!verRes.ok || !verData.verified) throw new Error(verData.error ?? "Verification failed");
 
-      sessionStorage.setItem(VERIFIED_KEY, Date.now().toString());
+      pageVerified = true;
       setState("unlocked");
     } catch (err) {
       if (err instanceof Error && err.name === "NotAllowedError") {

@@ -44,8 +44,6 @@ export function BiometricSettings() {
       const verData = await verRes.json();
       if (!verRes.ok || !verData.verified) throw new Error(verData.error ?? "Registration failed");
 
-      // Mark session as verified so the gate doesn't immediately re-lock
-      sessionStorage.setItem("bio-verified-at", Date.now().toString());
       setMessage("Biometric lock enabled.");
       setHasCredential(true);
     } catch (err) {
@@ -67,7 +65,6 @@ export function BiometricSettings() {
     try {
       const res = await fetch("/api/webauthn/credentials", { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to remove credentials");
-      sessionStorage.removeItem("bio-verified-at");
       setMessage("Biometric lock removed.");
       setHasCredential(false);
     } catch (err) {
