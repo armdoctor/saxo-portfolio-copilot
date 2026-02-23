@@ -74,14 +74,13 @@ export function PortfolioSummary({
         throw new Error(data.error || "Refresh failed");
       }
       router.refresh();
-      loadInsight(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Refresh failed");
     } finally {
       refreshingRef.current = false;
       setRefreshing(false);
     }
-  }, [router, loadInsight]);
+  }, [router]);
 
   useEffect(() => {
     const id = setInterval(doRefresh, AUTO_REFRESH_MS);
