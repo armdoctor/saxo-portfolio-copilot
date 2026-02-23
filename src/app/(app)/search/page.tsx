@@ -32,10 +32,46 @@ function assetLabel(type: string) {
   return ASSET_TYPE_LABELS[type] ?? type;
 }
 
-function ResultCard({ r }: { r: InstrumentResult }) {
+// --- Recent searches (localStorage) ---
+
+const STORAGE_KEY = "saxo-recent-searches";
+const MAX_RECENT = 7;
+
+function loadRecent(): InstrumentResult[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(item: InstrumentResult) {
+  const existing = loadRecent().filter(
+    (r) => !(r.uic === item.uic && r.assetType === item.assetType)
+  );
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify([item, ...existing].slice(0, MAX_RECENT))
+  );
+}
+
+function clearRecent() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// --- Result card ---
+
+function ResultCard({
+  r,
+  onSelect,
+}: {
+  r: InstrumentResult;
+  onSelect?: () => void;
+}) {
   return (
     <Link
       href={`/instruments/${r.uic}/${r.assetType}?symbol=${encodeURIComponent(r.symbol)}&saxoSymbol=${encodeURIComponent(r.saxoSymbol)}&name=${encodeURIComponent(r.name)}`}
+      onClick={onSelect}
       className="group flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:border-primary/40 hover:bg-muted/40"
     >
       <div className="min-w-0">
@@ -60,7 +96,13 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const [recent, setRecent] = useState<InstrumentResult[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    setRecent(loadRecent());
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -94,6 +136,18 @@ export default function SearchPage() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query]);
+
+  const handleSelect = (r: InstrumentResult) => {
+    saveRecent(r);
+    setRecent(loadRecent());
+  };
+
+  const handleClearRecent = () => {
+    clearRecent();
+    setRecent([]);
+  };
+
+  const isIdle = !searched && !loading && query.trim().length === 0;
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -130,9 +184,7 @@ export default function SearchPage() {
       </div>
 
       {/* Error */}
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {/* Results */}
       {results.length > 0 && (
@@ -142,7 +194,11 @@ export default function SearchPage() {
           </p>
           <div className="space-y-2">
             {results.map((r) => (
-              <ResultCard key={`${r.uic}-${r.assetType}`} r={r} />
+              <ResultCard
+                key={`${r.uic}-${r.assetType}`}
+                r={r}
+                onSelect={() => handleSelect(r)}
+              />
             ))}
           </div>
         </div>
@@ -155,8 +211,32 @@ export default function SearchPage() {
         </p>
       )}
 
-      {/* Idle state */}
-      {!searched && !loading && query.trim().length === 0 && (
+      {/* Idle state — recent searches */}
+      {isIdle && recent.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Recently viewed</p>
+            <button
+              onClick={handleClearRecent}
+              className="text-xs text-muted-foreground/60 hover:text-muted-foreground"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="space-y-2">
+            {recent.map((r) => (
+              <ResultCard
+                key={`recent-${r.uic}-${r.assetType}`}
+                r={r}
+                onSelect={() => handleSelect(r)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Idle state — no recent */}
+      {isIdle && recent.length === 0 && (
         <p className="text-sm text-muted-foreground">
           Search across stocks, ETFs, bonds, funds, and more.
         </p>
