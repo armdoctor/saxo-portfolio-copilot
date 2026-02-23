@@ -35,6 +35,7 @@ ZERO VAGUENESS POLICY — THIS IS CRITICAL:
 - Instead of "tech has been volatile recently" → "NVDA dropped 12% from its 52-week high. Since it's 18.2% of your portfolio, that's roughly a 2.2% drag on your total value."
 - Instead of "you could diversify more" → "You have 0% in healthcare and 0% in utilities. Adding 5-10% via XLV (Healthcare Select SPDR) would reduce your tech concentration from 45% to ~38%."
 - If you don't have enough data to be specific, say exactly WHAT data is missing and use the available tools to get it. Never fill gaps with generic filler.
+- NEVER respond with generic advice like "contact Saxo support" or "check your account statements". If a tool returns data but the exact field you expected is missing, examine every field in the response and report what IS there. Name the fields, give the values, and explain what they likely represent.
 - When explaining WHY something matters, give the concrete mechanism: "A 25bps Fed rate hike typically compresses bank net interest margins by 5-10bps, which for DBS (your largest position at 15.3%) could mean a 2-3% EPS headwind."
 
 ANALYSIS APPROACH:
@@ -320,7 +321,31 @@ export async function POST(req: Request) {
               params.fromDate,
               params.toDate
             );
-            return { fetchedAt: new Date().toISOString(), ...data };
+
+            // Flatten and surface any fields that sound like commissions/fees
+            // so the AI can find them regardless of exact Saxo field naming
+            const feeFields: Record<string, unknown> = {};
+            const FEE_KEYWORDS = ["commission", "fee", "cost", "charge", "brokerage", "expense"];
+            function extractFeeFields(obj: unknown, prefix = "") {
+              if (!obj || typeof obj !== "object" || Array.isArray(obj)) return;
+              for (const [key, val] of Object.entries(obj as Record<string, unknown>)) {
+                const fullKey = prefix ? `${prefix}.${key}` : key;
+                if (FEE_KEYWORDS.some((kw) => key.toLowerCase().includes(kw))) {
+                  feeFields[fullKey] = val;
+                }
+                extractFeeFields(val, fullKey);
+              }
+            }
+            extractFeeFields(data);
+            console.log(`[Chat] Commission-related fields found: ${JSON.stringify(feeFields)}`);
+
+            return {
+              fetchedAt: new Date().toISOString(),
+              _commissionRelatedFields: Object.keys(feeFields).length > 0
+                ? feeFields
+                : "none found — examine fullData for any numeric deductions",
+              fullData: data,
+            };
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : String(err);
             console.error(`[Chat] getCommissionsAndFees error: ${errMsg}`);
