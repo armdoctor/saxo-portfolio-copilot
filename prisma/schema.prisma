@@ -8,13 +8,36 @@ datasource db {
 }
 
 model User {
-  id             String              @id @default(cuid())
-  email          String              @unique
-  saxoConnection SaxoConnection?
-  snapshots      PortfolioSnapshot[]
-  chatMessages   ChatMessage[]
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  saxoConnection      SaxoConnection?
+  snapshots           PortfolioSnapshot[]
+  chatMessages        ChatMessage[]
+  webAuthnCredentials WebAuthnCredential[]
+  webAuthnChallenge   WebAuthnChallenge?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model WebAuthnCredential {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  transports   String[]
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge String
+  expiresAt DateTime
 }
 
 model SaxoConnection {

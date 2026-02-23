@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SaxoSettingsClient } from "./client";
 import { FreshnessBanner } from "@/components/freshness-banner";
+import { BiometricSettings } from "@/components/settings/biometric-settings";
 
 export default async function SaxoSettingsPage() {
   const session = await auth();
@@ -34,6 +35,7 @@ export default async function SaxoSettingsPage() {
 
   return (
     <div className="space-y-6">
+      <BiometricSettings />
       <FreshnessBanner
         snapshotAt={latestSnapshot?.snapshotAt?.toISOString() || null}
       />

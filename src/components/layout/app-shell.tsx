@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { BiometricGate } from "@/components/biometric-gate";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
+    <BiometricGate>
     <div className="flex h-dvh bg-background">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 flex-col bg-card md:flex">
@@ -126,5 +128,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </div>
     </div>
+    </BiometricGate>
   );
 }
