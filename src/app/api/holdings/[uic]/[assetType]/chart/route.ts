@@ -28,13 +28,23 @@ export async function GET(
     return NextResponse.json({ error: "Invalid range" }, { status: 400 });
   }
 
+  const uicNum = parseInt(uic, 10);
+  const chartRange = range as ChartRange;
+
+  // Try Yahoo Finance first
   try {
-    const data = await fetchChartData(
-      session.user.id,
-      parseInt(uic, 10),
-      assetType,
-      range as ChartRange
-    );
+    const yahooSymbol = await resolveYahooSymbol(session.user.id, uicNum, assetType);
+    if (yahooSymbol) {
+      const yahooData = await fetchYahooChart(yahooSymbol, chartRange);
+      return NextResponse.json(yahooData);
+    }
+  } catch (yahooErr) {
+    console.error("[Yahoo chart primary]", yahooErr);
+  }
+
+  // Fall back to Saxo
+  try {
+    const data = await fetchChartData(session.user.id, uicNum, assetType, chartRange);
     return NextResponse.json(data);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Chart fetch failed";
@@ -44,20 +54,6 @@ export async function GET(
     }
     if (message.includes("rate limit")) {
       return NextResponse.json({ error: "Rate limited" }, { status: 429 });
-    }
-
-    // 403 / access denied → try Yahoo Finance fallback
-    if (message.includes("403") || message.includes("Access denied")) {
-      try {
-        const yahooSymbol = await resolveYahooSymbol(session.user.id, parseInt(uic, 10), assetType);
-        if (yahooSymbol) {
-          const yahooData = await fetchYahooChart(yahooSymbol, range as ChartRange);
-          return NextResponse.json(yahooData);
-        }
-      } catch (yahooErr) {
-        console.error("[Yahoo chart fallback]", yahooErr);
-      }
-      return NextResponse.json({ error: "Chart access denied" }, { status: 403 });
     }
 
     return NextResponse.json({ error: message }, { status: 500 });
