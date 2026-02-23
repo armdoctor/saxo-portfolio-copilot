@@ -16,8 +16,18 @@ async function getValidAccessToken(userId: string): Promise<string> {
   const token = connection.token;
   const now = new Date();
 
-  // Check if access token is still valid (with 60-second buffer)
-  if (token.accessTokenExpiresAt > new Date(now.getTime() + 60_000)) {
+  // Proactively refresh if refresh token expires within 15 minutes, even if
+  // the access token is still valid. This keeps the session rolling as long
+  // as the app is used at least once per ~45 min (SIM tokens last ~1 hour).
+  const refreshTokenExpiresAt = token.refreshTokenExpiresAt;
+  const refreshTokenCloseToExpiry =
+    refreshTokenExpiresAt < new Date(now.getTime() + 15 * 60 * 1000);
+
+  // Access token still valid AND refresh token is not close to expiry — use as-is
+  if (
+    token.accessTokenExpiresAt > new Date(now.getTime() + 60_000) &&
+    !refreshTokenCloseToExpiry
+  ) {
     return decrypt({
       ciphertext: token.accessTokenEncrypted,
       iv: token.iv,
@@ -25,8 +35,8 @@ async function getValidAccessToken(userId: string): Promise<string> {
     });
   }
 
-  // Access token expired -- try refresh
-  if (token.refreshTokenExpiresAt < now) {
+  // Refresh token fully expired — must reconnect via OAuth
+  if (refreshTokenExpiresAt < now) {
     throw new Error("Saxo session expired. Please reconnect your account.");
   }
 

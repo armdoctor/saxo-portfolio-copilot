@@ -104,6 +104,13 @@ export async function storeTokens(
   const refreshEncrypted = encrypt(tokens.refresh_token);
   const now = new Date();
 
+  // Saxo doesn't always return refresh_token_expires_in; fall back to 1 hour
+  // (SIM minimum) so we never store an invalid date.
+  const refreshExpiresIn = tokens.refresh_token_expires_in || 3600;
+
+  const accessTokenExpiresAt = new Date(now.getTime() + tokens.expires_in * 1000);
+  const refreshTokenExpiresAt = new Date(now.getTime() + refreshExpiresIn * 1000);
+
   await prisma.saxoToken.upsert({
     where: { connectionId },
     create: {
@@ -114,12 +121,8 @@ export async function storeTokens(
       refreshTokenEncrypted: refreshEncrypted.ciphertext,
       refreshIv: refreshEncrypted.iv,
       refreshAuthTag: refreshEncrypted.authTag,
-      accessTokenExpiresAt: new Date(
-        now.getTime() + tokens.expires_in * 1000
-      ),
-      refreshTokenExpiresAt: new Date(
-        now.getTime() + tokens.refresh_token_expires_in * 1000
-      ),
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt,
       codeVerifier,
     },
     update: {
@@ -129,12 +132,8 @@ export async function storeTokens(
       refreshTokenEncrypted: refreshEncrypted.ciphertext,
       refreshIv: refreshEncrypted.iv,
       refreshAuthTag: refreshEncrypted.authTag,
-      accessTokenExpiresAt: new Date(
-        now.getTime() + tokens.expires_in * 1000
-      ),
-      refreshTokenExpiresAt: new Date(
-        now.getTime() + tokens.refresh_token_expires_in * 1000
-      ),
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt,
       codeVerifier,
     },
   });
