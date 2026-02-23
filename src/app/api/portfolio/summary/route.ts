@@ -28,7 +28,12 @@ export async function GET(req: NextRequest) {
   // Serve from cache unless forced refresh
   const cached = cache.get(userId);
   if (!forceRefresh && cached && Date.now() - cached.generatedAt < CACHE_TTL_MS) {
-    return NextResponse.json({ summary: cached.text, cached: true });
+    try {
+      const parsed = JSON.parse(cached.text);
+      return NextResponse.json({ ...parsed, cached: true });
+    } catch {
+      // stale/malformed cache entry — fall through to regenerate
+    }
   }
 
   const rl = rateLimit(`summary:${userId}`, { limit: 5, windowMs: 60_000 });
@@ -148,16 +153,17 @@ ${holdingsText}
 Recent news for key holdings:
 ${newsContext || "No recent news available"}`.trim();
 
-  const prompt = `You are a portfolio analyst. Write exactly ONE concise paragraph (3–5 sentences) summarising this investor's portfolio performance TODAY.
+  const prompt = `You are a portfolio analyst. Respond with ONLY a valid JSON object — no markdown, no extra text.
 
-Rules:
-- Today is the primary timeframe — focus on day-change figures, not total P&L
-- Name the 2–3 holdings most responsible for today's move (up or down)
-- Use the news headlines to briefly explain WHY those names are moving
-- If all day-change figures are zero or unavailable, the market is likely closed — acknowledge this and briefly comment on recent relevant news instead
-- Be concrete: use the actual percentages and numbers provided
-- Flowing prose only — no bullets, no headers, no markdown
-- Maximum 5 sentences
+The JSON must have exactly two fields:
+- "headline": one punchy sentence (max 20 words) stating the portfolio direction and the single biggest driver today
+- "detail": 2–4 sentences adding specifics — which other names are moving, why (using the news), concrete percentages
+
+Rules for both fields:
+- Focus on TODAY's day-change figures, not total P&L
+- If all day-change figures are zero or missing, the market is likely closed — say so in the headline and use recent news for context in detail
+- Use actual numbers from the data; no vague language
+- Flowing prose, no bullets
 
 ${context}`;
 
@@ -165,12 +171,22 @@ ${context}`;
     const { text } = await generateText({
       model: openai("gpt-4o-mini"),
       messages: [{ role: "user", content: prompt }],
-      maxOutputTokens: 300,
+      maxOutputTokens: 350,
     });
 
-    const summary = text.trim();
-    cache.set(userId, { text: summary, generatedAt: Date.now() });
-    return NextResponse.json({ summary });
+    let headline = "";
+    let detail = "";
+    try {
+      const parsed = JSON.parse(text.trim());
+      headline = parsed.headline ?? "";
+      detail = parsed.detail ?? "";
+    } catch {
+      // Fallback: treat whole response as headline if JSON parsing fails
+      headline = text.trim().slice(0, 200);
+    }
+
+    cache.set(userId, { text: JSON.stringify({ headline, detail }), generatedAt: Date.now() });
+    return NextResponse.json({ headline, detail });
   } catch (err) {
     console.error("[Summary] OpenAI error:", err);
     return NextResponse.json({ error: "Failed to generate summary" }, { status: 500 });

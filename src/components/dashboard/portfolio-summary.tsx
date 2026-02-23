@@ -17,6 +17,11 @@ interface Props {
   snapshotAt: string;
 }
 
+interface Insight {
+  headline: string;
+  detail: string;
+}
+
 export function PortfolioSummary({
   totalValue,
   cashBalance,
@@ -31,6 +36,32 @@ export function PortfolioSummary({
   const [error, setError] = useState<string | null>(null);
   const refreshingRef = useRef(false);
 
+  const [insight, setInsight] = useState<Insight | null>(null);
+  const [insightLoading, setInsightLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  const loadInsight = useCallback(async (forceRefresh = false) => {
+    setInsightLoading(true);
+    try {
+      const url = forceRefresh
+        ? "/api/portfolio/summary?refresh=1"
+        : "/api/portfolio/summary";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (res.ok && data.headline) {
+        setInsight({ headline: data.headline, detail: data.detail ?? "" });
+      }
+    } catch {
+      // insight is optional — fail silently
+    } finally {
+      setInsightLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInsight();
+  }, [loadInsight]);
+
   const doRefresh = useCallback(async () => {
     if (refreshingRef.current) return;
     refreshingRef.current = true;
@@ -43,13 +74,14 @@ export function PortfolioSummary({
         throw new Error(data.error || "Refresh failed");
       }
       router.refresh();
+      loadInsight(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Refresh failed");
     } finally {
       refreshingRef.current = false;
       setRefreshing(false);
     }
-  }, [router]);
+  }, [router, loadInsight]);
 
   useEffect(() => {
     const id = setInterval(doRefresh, AUTO_REFRESH_MS);
@@ -76,12 +108,13 @@ export function PortfolioSummary({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {error && (
-          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
+
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <p className="text-sm text-muted-foreground">Total Value</p>
@@ -107,6 +140,32 @@ export function PortfolioSummary({
             </p>
           </div>
         </div>
+
+        {/* AI insight */}
+        {insightLoading ? (
+          <div className="border-t border-border pt-3">
+            <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+          </div>
+        ) : insight ? (
+          <div className="border-t border-border pt-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-muted-foreground">{insight.headline}</p>
+              {insight.detail && (
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  className="shrink-0 text-xs text-muted-foreground/60 underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  {expanded ? "Show less" : "Show more"}
+                </button>
+              )}
+            </div>
+            {expanded && insight.detail && (
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground/80">
+                {insight.detail}
+              </p>
+            )}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

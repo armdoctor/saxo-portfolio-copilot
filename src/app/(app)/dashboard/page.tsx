@@ -6,7 +6,6 @@ import { AssetBreakdown } from "@/components/dashboard/asset-breakdown";
 import { CurrencyExposure } from "@/components/dashboard/currency-exposure";
 import { TopHoldings } from "@/components/dashboard/top-holdings";
 import { NewsFeed } from "@/components/dashboard/news-feed";
-import { PortfolioInsight } from "@/components/dashboard/portfolio-insight";
 import { FreshnessBanner } from "@/components/freshness-banner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -54,8 +53,6 @@ export default async function DashboardPage() {
         currency={snapshot.currency}
         snapshotAt={snapshot.snapshotAt.toISOString()}
       />
-
-      <PortfolioInsight />
 
       <div className="grid gap-6 md:grid-cols-2">
         <AssetBreakdown
